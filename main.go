@@ -13,14 +13,25 @@ type Handle struct {
 	validToken   string
 	ollamaServer string
 	listenerAddr string
+	keyFile      string
+	certFile     string
 	httpClient   *http.Client
 }
 
 func main() {
 	h := readConfig("./config.conf")
 	http.HandleFunc("/", h.handleRequest)
-	fmt.Println("Starting server...")
-	err := http.ListenAndServe(h.listenerAddr, nil)
+
+	var err error
+	if fileExist(h.keyFile) && fileExist(h.certFile) {
+		fmt.Println("Starting HTTPS server...")
+		err = http.ListenAndServeTLS(h.listenerAddr, h.certFile, h.keyFile, nil)
+	} else if h.certFile == "" && h.keyFile == "" {
+		fmt.Println("Starting HTTP server...")
+		err = http.ListenAndServe(h.listenerAddr, nil)
+	} else {
+		fmt.Println("Certificate or key file not found!")
+	}
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -109,6 +120,10 @@ func readConfig(file string) Handle {
 			handle.validToken = tVal
 		case "listener_addr":
 			handle.listenerAddr = strings.ToLower(tVal)
+		case "key_file":
+			handle.keyFile = tVal
+		case "cert_file":
+			handle.certFile = tVal
 		default:
 			continue
 		}
@@ -126,4 +141,12 @@ func readConfig(file string) Handle {
 	}
 
 	return handle
+}
+
+func fileExist(file string) bool {
+	_, err := os.Stat(file)
+	if err == nil {
+		return true
+	}
+	return false
 }
