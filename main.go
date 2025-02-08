@@ -31,6 +31,7 @@ func main() {
 		err = http.ListenAndServe(h.listenerAddr, nil)
 	} else {
 		fmt.Println("Certificate or key file not found!")
+		return
 	}
 	if err != nil {
 		log.Fatal(err)
