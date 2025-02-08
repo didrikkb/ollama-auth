@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"path/filepath"
 	"strings"
 )
 
@@ -19,20 +20,22 @@ type Handle struct {
 }
 
 func main() {
+	changeWorkingDir()
 	h := readConfig("./config.conf")
 	http.HandleFunc("/", h.handleRequest)
 
 	var err error
-	if fileExist(h.keyFile) && fileExist(h.certFile) {
-		fmt.Println("Starting HTTPS server...")
-		err = http.ListenAndServeTLS(h.listenerAddr, h.certFile, h.keyFile, nil)
-	} else if h.certFile == "" && h.keyFile == "" {
+
+	if h.certFile == "" && h.keyFile == "" {
 		fmt.Println("Starting HTTP server...")
 		err = http.ListenAndServe(h.listenerAddr, nil)
+	} else if fileExist(h.keyFile) && fileExist(h.certFile) {
+		fmt.Println("Starting HTTPS server...")
+		err = http.ListenAndServeTLS(h.listenerAddr, h.certFile, h.keyFile, nil)
 	} else {
 		fmt.Println("Certificate or key file not found!")
-		return
 	}
+
 	if err != nil {
 		log.Fatal(err)
 	}
@@ -150,4 +153,20 @@ func fileExist(file string) bool {
 		return true
 	}
 	return false
+}
+
+func changeWorkingDir() {
+	exePath, err := os.Executable()
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
+
+	dirName := filepath.Dir(exePath)
+
+	err = os.Chdir(dirName)
+	if err != nil {
+		fmt.Println("Error:", err)
+		return
+	}
 }
